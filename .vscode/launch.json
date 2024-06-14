@@ -1,0 +1,33 @@
+{
+   
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "Launch with correct file",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "sales_data.csv"
+        },
+
+        {
+            "name": "Launch with incorrect,file",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "salesdata.csv"
+        },
+
+        {
+            "name": "file missing ",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ""
+        }
+    ]
+}

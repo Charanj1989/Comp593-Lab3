@@ -40,6 +40,10 @@ def get_sales_csv_path():
 
 
     # TODO: Return path of sales data CSV file
+    csv_path = sys.argv[1]
+    if not os.path.isfile(csv_path):
+        print("ERROR: Invalid CSV file path.")
+        sys.exit(1)
     return sales_csv_path 
 
 def create_orders_dir(sales_csv_path):
@@ -79,10 +83,19 @@ def process_sales_data(sales_csv_path, orders_dir_path):
     sales_df = pd.read_csv(sales_csv_path)
     
     # TODO: Insert a new "TOTAL PRICE" column into the DataFrame
+
+    new_list = sales_df['ITEM PRICE']
+    new_list_1 = list(new_list)
+    def multiply(a):
+        for g in new_list_1:
+            c = g*a
+            new_list_1.remove(g)
+            return c
+            break
     sales_df.insert(7, 'TOTAL PRICE', sales_df['ITEM QUANTITY'] * sales_df['ITEM PRICE'])
     
     # TODO: Remove columns from the DataFrame that are not needed
-    sales_df.drop(columns=['ADDRESS', 'CITY', 'STATE', 'POSTAL CODE', 'COUNTRY'], inplace=True)
+    sales_df.drop(columns=['ADDRESS', 'CITY', 'STATE', 'POSTAL CODE', 'COUNTRY'], axis=1, inplace=True)
 
     # TODO: Groups orders by ID and iterate 
     for order_id, order_df in sales_df.groupby('ORDER ID'):
