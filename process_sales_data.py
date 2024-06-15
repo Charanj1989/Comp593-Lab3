@@ -8,83 +8,61 @@ Usage:
 Parameters:
   sales_csv_path = Full path of the sales data CSV file
 """
+
 import sys
 import os
 from datetime import date
 import pandas as pd
-import re
 
 def main():
-    sales_csv_path = get_sales_csv_path()
-    orders_dir_path = create_orders_dir(sales_csv_path)
-    process_sales_data(sales_csv_path, orders_dir_path)
+    path_sales_csv = get_path_sales_csv()
+    orders_dir = create_orders_dir(path_sales_csv)
+    process_sales_data(path_sales_csv, orders_dir)
 
-def get_sales_csv_path():
-    """Gets the path of sales data CSV file from the command line
+# Get path of sales data CSV file from the command line
+def get_path_sales_csv():
+    # Check whether command line parameter provided
+    if len(sys.argv) < 2:
+        print("Error: Missing the parameter for CSV filepath")
+        sys.exit(2)
 
-    Returns:
-        str: Path of sales data CSV file
-    """
-    # TODO: Check whether command line parameter provided
-
-    num_params = len(sys.argv) - 1
-    if num_params < 1:
-        print('Error: Missing path to sales data CSV file')
-        sys.exit(1)
-    # TODO: Check whether provide parameter is valid path of file
-
-    sales_csv_path = sys.argv[1]
-    if not os.path.isfile(sales_csv_path):
-        print('Error: Invalid path to sales dats CSV files')
-        sys.exit(1)
-
-
-    # TODO: Return path of sales data CSV file
-    csv_path = sys.argv[1]
-    if not os.path.isfile(csv_path):
+     # Check whether provide parameter is valid path of file
+    path_csv = sys.argv[1]
+    if not os.path.isfile(path_csv):
         print("ERROR: Invalid CSV file path.")
-        sys.exit(1)
-    return sales_csv_path 
+        sys.exit(2)
+    return path_csv
 
-def create_orders_dir(sales_csv_path):
+# Create the directory to hold the individual order Excel sheets
+def create_orders_dir(path_sales_csv):
     """Creates the directory to hold the individual order Excel sheets
 
     Args:
-        sales_csv_path (str): Path of sales data CSV file
+        path_sales_csv (str): Path of sales data CSV file
 
     Returns:
         str: Path of orders directory
     """
-    # TODO: Get directory in which sales data CSV file resides
-    
-    sales_dir_path = os.path.dirname(os.path.abspath(sales_csv_path))
-    
-    # TODO: Determine the path of the directory to hold the order data files
-    todays_date = date.today().isoformat()
-    orders_dir_path = os.path.join(sales_dir_path, f'Orders_{todays_date}')
-    
-    # TODO: Create the orders directory if it does not already exist
-    if not os.path.isdir(orders_dir_path):
-       os.makedirs(orders_dir_path)
 
-  
     
-    # TODO: Return path of orders directory
+# Get directory in which sales data CSV file resides
+    sales_dir_path = os.path.dirname(os.path.abspath(path_sales_csv))
+    
+    # Determine the name and path of the directory to hold the order data files
+    todays_date = date.today().isoformat()
+    order_dir_name = f'orders_{todays_date}'
+    orders_dir_path = os.path.join(sales_dir_path,order_dir_name)
+    # Create the order directory if it does not already exist
+    if not os.path.isdir(orders_dir_path):
+        os.makedirs(orders_dir_path)
     return orders_dir_path
 
-def process_sales_data(sales_csv_path, orders_dir_path):
-    """Splits the sales data into individual orders and save to Excel sheets
-
-    Args:
-        sales_csv_path (str): Path of sales data CSV file
-        orders_dir_path (str): Path of orders directory
-    """
-    # TODO: Import the sales data from the CSV file into a DataFrame
-    sales_df = pd.read_csv(sales_csv_path)
-    
-    # TODO: Insert a new "TOTAL PRICE" column into the DataFrame
-
-    new_list = sales_df['ITEM PRICE']
+# Split the sales data into individual orders and save to Excel sheets
+def process_sales_data(path_sales_csv, orders_dir):
+    # Import the sales data from the CSV file into a DataFrame
+    sales_data = pd.read_csv('sales_data.csv')
+    # Insert a new "TOTAL PRICE" column into the DataFrame
+    new_list = sales_data['ITEM PRICE']
     new_list_1 = list(new_list)
     def multiply(a):
         for g in new_list_1:
@@ -92,56 +70,53 @@ def process_sales_data(sales_csv_path, orders_dir_path):
             new_list_1.remove(g)
             return c
             break
-    sales_df.insert(7, 'TOTAL PRICE', sales_df['ITEM QUANTITY'] * sales_df['ITEM PRICE'])
+    sales_data.insert(7,'TOTAL PRICE',[multiply(a) for a in sales_data['ITEM QUANTITY']] )
+    # Remove columns from the DataFrame that are not needed
+    sales_data.drop(['ADDRESS','CITY','STATE','POSTAL CODE','COUNTRY'],axis=1,inplace=True)
+    # Group the rows in the DataFrame by order ID
+    group_sales_data = sales_data.groupby('ORDER ID')
     
-    # TODO: Remove columns from the DataFrame that are not needed
-    sales_df.drop(columns=['ADDRESS', 'CITY', 'STATE', 'POSTAL CODE', 'COUNTRY'], axis=1, inplace=True)
-
-    # TODO: Groups orders by ID and iterate 
-    for order_id, order_df in sales_df.groupby('ORDER ID'):
     
-        # TODO: Remove the 'ORDER ID' column
-        order_df.drop(columns=['ORDER ID'], inplace=True)
-
-        # TODO: Sort the items by item number
-        order_df.sort_values(by='ITEM NUMBER', inplace=True)
+    # For each order ID:
+    for id,sales_data2 in group_sales_data:
         
-        # TODO: Append a "GRAND TOTAL" row
-        grand_total = order_df['TOTAL PRICE'].sum()
-        grand_total_df = pd.DataFrame({'ITEM PRICE': ['GRAND TOTAL:'], 'TOTAL PRICE': [grand_total]})
-        order_df = pd.concat([order_df, grand_total_df])
+        # Remove the "ORDER ID" column
+        sales_data2.drop(['ORDER ID'],axis=1,inplace=True)
         
-        # TODO: Determine the file name and full path of the Excel sheet
-        customer_name = order_df['CUSTOMER NAME']. values[0]
-        customer_name = re.sub(r'\W', '',customer_name)
-        order_file = f'Order{order_id}_{customer_name}.xlsx'
-        order_path = os.path.join(orders_dir_path, order_file)
+        #Sort the items by item number
+        sales_data2.sort_values(by = 'ITEM NUMBER',inplace = True)
+    
+        # Append a "GRAND TOTAL" row
+        a = sum(sales_data2['TOTAL PRICE'])
         
-        # TODO: Export the data to an Excel sheet
-        sheet_name = f'ORDER #{order_id}'
-        order_df.to_excel(order_path, index=False, sheet_name=sheet_name)
+        new_value = f"${a}"
+        new_row = {'ITEM PRICE':'GRAND TOTAL:','TOTAL PRICE': new_value}
+        sales_data2.loc[len(sales_data2)] = new_row
         
-
+        # Determine the file name and full path of the Excel sheet
+        file_path = os.path.abspath(orders_dir)
+        file_name = f"{id}.xlsx"
+        proper_file_path = os.path.join(file_path,file_name)
+        # Export the data to an Excel sheet
+        sales_data2.to_excel(proper_file_path,index=False,sheet_name='Dataofsales')
         # TODO: Format the Excel sheet
-        writer = pd.ExcelWriter(order_path, engine='xlsxwriter')
-        order_df.to_excel(writer, index=False, sheet_name=sheet_name)
+        writer = pd.ExcelWriter(proper_file_path, engine="xlsxwriter")
+        sales_data2.to_excel(writer,index=False, sheet_name='Dataofsales')
         workbook = writer.book
-        worksheet = writer.sheets[sheet_name]
-        
-        # TODO: Define format for the money columns
-        money_fmt = workbook.add_format({'num_format' : '$#,##.00'})
-
-        # TODO: Format each colunm
-        worksheet.set_column('A:A', 11)
-        worksheet.set_column('B:B', 13)
-        worksheet.set_column('C:E', 15)
-        worksheet.set_column('F:G', 13, money_fmt)
-        worksheet.set_column('H:H', 10)
-        worksheet.set_column('I:I', 30)
-        
-        # TODO: Close the Excelwriter 
+        worksheet = writer.sheets['Dataofsales']
+        format = workbook.add_format({"num_format": "$#,##0.000"})
+        worksheet.set_column('A:A',11)
+        worksheet.set_column('B:B',13)
+        worksheet.set_column('C:C',15)
+        worksheet.set_column('D:D',15)
+        worksheet.set_column('E:E',15)
+        worksheet.set_column('F:F',13,format)
+        worksheet.set_column('G:G',13,format)
+        worksheet.set_column('H:H',10)
+        worksheet.set_column('I:I',30)
         writer.close()
-    return
+        
+    pass
 
 if __name__ == '__main__':
     main()
